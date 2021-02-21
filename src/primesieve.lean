@@ -110,6 +110,59 @@ begin
   sorry,
 end
 
+lemma sieve_filters₁ (n k: ℕ) (li: list ℕ) :
+  (n ≠ k) -> (n ∣ k) -> k ∉ sieve_aux (n :: li) :=
+begin
+  intros h₁ h₂ h₃,
+  safe [sieve_aux],
+  replace h₃ := sieve_aux_mem k _ h₃,
+  finish,
+end
+
+lemma sieve_sublist₁ (x: ℕ) (li: list ℕ) :
+  sieve_aux li <+ sieve_aux (li ++ [x]) :=
+begin
+  apply well_founded.induction (measure_wf list.length) li,
+  clear li,
+
+  intros li h₁,
+
+  cases li,
+  simp only [sieve_aux, list.filter_nil, list.nil_append, list.sublist_cons],
+
+  simp only [sieve_aux, list.filter_append, list.cons_append],
+  apply list.sublist.cons2,
+  
+  by_cases li_hd ∣ x,
+  finish,
+
+  have h₂ : list.filter (λ (n : ℕ), ¬li_hd ∣ n) [x] = [x] := by finish,
+  rw h₂,
+
+  apply h₁,
+  simp only [measure, inv_image, list.length],
+  exact sieve_aux_wf _ li_tl,
+end
+
+
+lemma sieve_sublist₂ (li₁ li₂: list ℕ) :
+  sieve_aux li₁ <+ sieve_aux (li₁ ++ li₂) :=
+begin
+  apply well_founded.induction (measure_wf list.length) li₂,
+  intros x h₁,
+
+  cases x,
+  simp only [list.append_nil],
+
+  have h₃ : x_hd :: x_tl ≠ list.nil := by simp only [ne.def, not_false_iff],
+  rw [← list.init_append_last h₃, ← list.append_assoc],
+  
+  refine list.sublist.trans _ (sieve_sublist₁ _ _),
+  apply h₁,
+  
+  simp only [measure, inv_image, list.length, nat.succ_pos',
+    nat.add_succ_sub_one, add_zero, lt_add_iff_pos_right, list.length_init],
+end
 
 /-
 
@@ -181,9 +234,10 @@ begin
   cases h₃,
   finish,
   right,
-  sorry,
+  
   
 end
+
 
 theorem sieve_filters_nonprimes₁ (n k: ℕ) (li: list ℕ):
   n > 1 -> n ∣ k -> n ≠ k -> k ∉ sieve_aux (n :: li) :=
