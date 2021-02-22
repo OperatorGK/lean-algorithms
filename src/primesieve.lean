@@ -164,6 +164,62 @@ begin
     nat.add_succ_sub_one, add_zero, lt_add_iff_pos_right, list.length_init],
 end
 
+lemma sieve_filters₂ (n k: ℕ) (li: list ℕ) :
+  (nat.prime n) -> (n ≠ k) -> (n ∣ k) -> 
+  (1 ∉ li) -> (k ∉ li) -> (n ∈ li) -> (k ∉ sieve_aux (li ++ [k])) :=
+begin
+  intros h₀ h₁ h₂,
+  apply well_founded.induction (measure_wf list.length) li,
+  intros li' h₆ h₃ h₄ h₅,
+
+  cases li',
+  solve_by_elim,
+
+  simp only [list.cons_append, sieve_aux, list.filter_append, list.mem_cons_iff, ne.def] at *,
+  push_neg,
+  split,
+  tauto,
+
+  cases h₅,
+  simp only [*, list.filter_cons_of_neg, list.filter_nil,
+    list.append_nil, not_true, not_false_iff] at *,
+  intro h₆,
+  replace h₆ := sieve_aux_mem _ _ h₆,
+  simp only [*, list.mem_filter, not_true] at *,
+  
+  by_cases n = li'_hd,
+  simp only [*, list.filter_cons_of_neg, list.filter_nil, list.append_nil, not_true,
+    not_false_iff] at *,
+  intro h₆,
+  push_neg at h₄,
+  replace h₆ := sieve_aux_mem _ _ h₆,
+  simp * at *, 
+
+  by_cases li'_hd ∣ k,
+  simp only [*, list.filter_cons_of_neg, list.filter_nil, list.append_nil, not_true,
+    not_false_iff] at *,
+  intro h₆,
+  push_neg at h₄,
+  replace h₆ := sieve_aux_mem _ _ h₆,
+  simp * at *,
+
+  simp only [*, list.filter_nil, not_false_iff, list.filter_cons_of_pos] at *,
+  apply h₆,
+
+  simp [measure, inv_image, list.length],
+  exact sieve_aux_wf _ _,
+
+  simp only [*, and_true, list.mem_filter, not_false_iff] at *,
+  tauto,
+
+  simp [*, true_and, list.mem_filter, nat.prime] at *,
+  finish,
+
+  simp only [*, true_and, list.mem_filter, nat.prime] at *,
+  finish,
+end
+
+
 /-
 
 theorem sieve_give_only_primes (n m: ℕ) :
