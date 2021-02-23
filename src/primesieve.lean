@@ -73,31 +73,56 @@ begin
   simpa only [list.length_range, add_lt_add_iff_left],
 end
 
+lemma range_drop_mem₁ (m n k: ℕ) :
+  (k < n) -> k ∉ (list.range m).drop n :=
+begin
+  intro h₁,
+  by_cases n ≤ m,
+
+  cases nat.le.dest h with m' h₂,
+  rw [←h₂] at *,
+  clear h₂ m h,
+
+  simp only [list.mem_iff_nth_le, not_exists, add_lt_add_iff_left],
+  intros i h₂,
+  rw nth_le_drop_range,
+  linarith,
+  simp only [*, list.length_drop, nat.add_sub_cancel_left, list.length_range] at *,
+
+  set li := (list.range m).drop n with h₂,  
+  have h₃: li.length = 0 := 
+    by simp only [list.length_drop, list.length_range, le_of_not_ge h, nat.sub_eq_zero_of_le],
+
+  simp only [list.length_eq_zero.mp h₃, list.not_mem_nil, not_false_iff],  
+end
+
+lemma range_drop_mem₂ (m n k: ℕ) :
+  (k ≥ n) -> (k < m) -> k ∈ (list.range m).drop n :=
+begin
+  intros h₁ h₂,
+
+  have h₄ : n ≤ m := by linarith,  
+  cases nat.le.dest h₁ with k' h₃,  
+  cases nat.le.dest h₄ with m' h₅,
+  simp only [←h₃, ←h₅, add_lt_add_iff_left] at *,
+  clear h₁ h₃ h₄ h₅ m k,
+
+  simp only [list.mem_iff_nth_le],
+  use k',
+
+  fconstructor,
+  simp only [*, list.length_drop, nat.add_sub_cancel_left, list.length_range],  
+
+  rwa [nth_le_drop_range],
+end
+
 theorem sieve_keeps_primes₂ (m n: ℕ) :
   n < m -> nat.prime n -> n ∈ sieve m :=
 begin  
   intros h₁ h₂,
-
-  cases nat.le.dest h₂.left with n' h₃,  
-  have h₄ : 2 ≤ m := by linarith,
-  cases nat.le.dest h₄ with m' h₅,
-  rw [←h₃, ←h₅] at *,
-  clear h₃ h₄ h₅ m n,
-
-  rw sieve,
   refine sieve_keeps_primes₁ _ _ h₂ _ _,
-  
-  simp only [list.mem_iff_nth_le, not_exists, add_lt_add_iff_left],
-  intros i h₃,
-  rw nth_le_drop_range,
-  linarith,
-  finish,
-
-  rw list.mem_iff_nth_le,
-  use n',
-  fconstructor,
-  finish,
-  exact nth_le_drop_range _ _ _ (by linarith),
+  simp only [range_drop_mem₁, nat.one_lt_bit0_iff, not_false_iff],
+  finish [nat.prime, range_drop_mem₂],
 end
 
 theorem prime_sieve (m n: ℕ) :
@@ -106,8 +131,7 @@ begin
   intro h,
   split,
   exact sieve_keeps_primes₂ m n h,
-
-  sorry,
+  sorry
 end
 
 lemma sieve_filters₁ (n k: ℕ) (li: list ℕ) :
@@ -144,7 +168,6 @@ begin
   exact sieve_aux_wf _ li_tl,
 end
 
-
 lemma sieve_sublist₂ (li₁ li₂: list ℕ) :
   sieve_aux li₁ <+ sieve_aux (li₁ ++ li₂) :=
 begin
@@ -171,6 +194,7 @@ begin
   intros h₀ h₁ h₂,
   apply well_founded.induction (measure_wf list.length) li,
   intros li' h₆ h₃ h₄ h₅,
+  clear li,
 
   cases li',
   solve_by_elim,
@@ -180,43 +204,28 @@ begin
   split,
   tauto,
 
-  cases h₅,
+  by_cases li'_hd ∣ k,
+  
+  clear h₆,
   simp only [*, list.filter_cons_of_neg, list.filter_nil,
     list.append_nil, not_true, not_false_iff] at *,
   intro h₆,
   replace h₆ := sieve_aux_mem _ _ h₆,
   simp only [*, list.mem_filter, not_true] at *,
   
-  by_cases n = li'_hd,
-  simp only [*, list.filter_cons_of_neg, list.filter_nil, list.append_nil, not_true,
-    not_false_iff] at *,
-  intro h₆,
-  push_neg at h₄,
-  replace h₆ := sieve_aux_mem _ _ h₆,
-  simp * at *, 
-
-  by_cases li'_hd ∣ k,
-  simp only [*, list.filter_cons_of_neg, list.filter_nil, list.append_nil, not_true,
-    not_false_iff] at *,
-  intro h₆,
-  push_neg at h₄,
-  replace h₆ := sieve_aux_mem _ _ h₆,
-  simp * at *,
-
   simp only [*, list.filter_nil, not_false_iff, list.filter_cons_of_pos] at *,
   apply h₆,
+  all_goals { clear h₆ },
 
-  simp [measure, inv_image, list.length],
-  exact sieve_aux_wf _ _,
+  simp only [*, measure, inv_image, list.length, sieve_aux_wf],
 
-  simp only [*, and_true, list.mem_filter, not_false_iff] at *,
+  simp only [*, and_true, list.mem_filter, not_false_iff],
   tauto,
 
-  simp [*, true_and, list.mem_filter, nat.prime] at *,
-  finish,
+  simp only [*, list.mem_filter, and_true, not_false_iff],
+  tauto,
 
-  simp only [*, true_and, list.mem_filter, nat.prime] at *,
-  finish,
+  finish [list.mem_filter, nat.prime],
 end
 
 
